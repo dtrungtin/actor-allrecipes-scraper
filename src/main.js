@@ -8,6 +8,8 @@ function delay(time) {
     }));
 }
 
+const isObject = (val) => typeof val === 'object' && val !== null && !Array.isArray(val);
+
 Apify.main(async () => {
     const input = await Apify.getInput();
     console.log('Input:');
@@ -114,7 +116,7 @@ Apify.main(async () => {
                         console.log('extendOutputFunction has to return an object!!!');
                         process.exit(1);
                     }
-                    
+
                     _.extend(pageResult, userResult);
                 }
 

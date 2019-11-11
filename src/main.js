@@ -126,7 +126,7 @@ Apify.main(async () => {
 
                 await Apify.pushData(pageResult);
 
-                if (++pagesOutputted >= input.maxItems) {
+                if (input.maxItems && ++pagesOutputted >= input.maxItems) {
                     const msg = `Outputted ${pagesOutputted} pages, limit is ${input.maxItems} pages`;
                     console.log(`Shutting down the crawler: ${msg}`);
                     autoscaledPool.abort();

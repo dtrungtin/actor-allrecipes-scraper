@@ -90,7 +90,7 @@ Apify.main(async () => {
         handleRequestTimeoutSecs: 120,
         requestTimeoutSecs: 120,
         handlePageTimeoutSecs: 240,
-        maxConcurrency: 2,
+        maxConcurrency: 5,
 
         handlePageFunction: async ({ request, autoscaledPool, $ }) => {
             await delay(1000);

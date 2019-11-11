@@ -10,6 +10,42 @@ function delay(time) {
 
 const isObject = (val) => typeof val === 'object' && val !== null && !Array.isArray(val);
 
+function extractData(request, $) {
+    const ingredients = $('[itemprop=recipeIngredient]');
+    const ingredientList = [];
+
+    for (let index = 0; index < ingredients.length; index++) {
+        ingredientList.push($(ingredients[index]).text());
+    }
+
+    const directions = $('.recipe-directions__list--item');
+    const directionList = [];
+
+    for (let index = 0; index < directions.length; index++) {
+        const text = $(directions[index]).text().trim()
+            .split('\n')
+            .join('');
+
+        if (text !== '') {
+            directionList.push(`${index + 1}. ${text}`);
+        }
+    }
+
+    return {
+        url: request.url,
+        name: $('#recipe-main-content').text(),
+        rating: $('meta[itemprop=ratingValue]').attr('content'),
+        ratingcount: $('meta[itemprop=reviewCount]').attr('content'),
+        ingredients: ingredientList.join(', '),
+        directions: directionList.join(' '),
+        prep: $('[itemprop=prepTime]').text(),
+        cook: $('[itemprop=cookTime]').text(),
+        'ready in': $('[itemprop=totalTime]').text(),
+        calories: $('[itemprop=calories]').text().split(' ')[0],
+        '#debug': Apify.utils.createRequestDebugInfo(request),
+    };
+}
+
 Apify.main(async () => {
     const input = await Apify.getInput();
     console.log('Input:');
@@ -54,7 +90,7 @@ Apify.main(async () => {
         handleRequestTimeoutSecs: 120,
         requestTimeoutSecs: 120,
         handlePageTimeoutSecs: 240,
-        maxConcurrency: 5,
+        maxConcurrency: 2,
 
         handlePageFunction: async ({ request, autoscaledPool, $ }) => {
             await delay(1000);
@@ -75,39 +111,7 @@ Apify.main(async () => {
                 const nextPageUrl = $('link[rel=next]').attr('href');
                 await requestQueue.addRequest({ url: `${nextPageUrl}`, userData: { label: 'list' } });
             } else if (request.userData.label === 'item') {
-                const ingredients = $('[itemprop=recipeIngredient]');
-                const ingredientList = [];
-
-                for (let index = 0; index < ingredients.length; index++) {
-                    ingredientList.push($(ingredients[index]).text());
-                }
-
-                const directions = $('.recipe-directions__list--item');
-                const directionList = [];
-
-                for (let index = 0; index < directions.length; index++) {
-                    const text = $(directions[index]).text().trim()
-                        .split('\n')
-                        .join('');
-
-                    if (text !== '') {
-                        directionList.push(`${index + 1}. ${text}`);
-                    }
-                }
-
-                const pageResult = {
-                    url: request.url,
-                    name: $('#recipe-main-content').text(),
-                    rating: $('meta[itemprop=ratingValue]').attr('content'),
-                    ratingcount: $('meta[itemprop=reviewCount]').attr('content'),
-                    ingredients: ingredientList.join(', '),
-                    directions: directionList.join(' '),
-                    prep: $('[itemprop=prepTime]').text(),
-                    cook: $('[itemprop=cookTime]').text(),
-                    'ready in': $('[itemprop=totalTime]').text(),
-                    calories: $('[itemprop=calories]').text().split(' ')[0],
-                    '#debug': Apify.utils.createRequestDebugInfo(request),
-                };
+                const pageResult = extractData(request, $);
 
                 if (extendOutputFunction) {
                     const userResult = await extendOutputFunction($);

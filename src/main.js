@@ -46,6 +46,12 @@ function extractData(request, $) {
     };
 }
 
+let detailsEnqueued = 0;
+
+Apify.events.on('migrating', async () => {
+    await Apify.setValue('detailsEnqueued', detailsEnqueued);
+});
+
 Apify.main(async () => {
     const input = await Apify.getInput();
     console.log('Input:');
@@ -67,13 +73,23 @@ Apify.main(async () => {
         }
     }
 
-    const dataset = await Apify.openDataset();
-    const { itemCount } = await dataset.getInfo();
-    let pagesOutputted = itemCount;
     const requestQueue = await Apify.openRequestQueue();
+
+    detailsEnqueued = await Apify.getValue('detailsEnqueued');
+    if (!detailsEnqueued) {
+        detailsEnqueued = 0;
+    }
+
+    function checkLimit() {
+        return input.maxItems && detailsEnqueued >= input.maxItems;
+    }
 
     for (const request of input.startUrls) {
         const startUrl = request.url;
+
+        if (checkLimit()) {
+            break;
+        }
 
         if (startUrl.includes('https://www.allrecipes.com/')) {
             if (startUrl.includes('/recipe/')) {
@@ -102,6 +118,10 @@ Apify.main(async () => {
                 }
 
                 for (let index = 0; index < itemLinks.length; index++) {
+                    if (checkLimit()) {
+                        return;
+                    }
+
                     const itemUrl = $(itemLinks[index]).attr('href');
                     if (itemUrl) {
                         await requestQueue.addRequest({ url: `${itemUrl}`, userData: { label: 'item' } });
@@ -125,12 +145,6 @@ Apify.main(async () => {
                 }
 
                 await Apify.pushData(pageResult);
-
-                if (input.maxItems && ++pagesOutputted >= input.maxItems) {
-                    const msg = `Outputted ${pagesOutputted} pages, limit is ${input.maxItems} pages`;
-                    console.log(`Shutting down the crawler: ${msg}`);
-                    autoscaledPool.abort();
-                }
             }
         },
 

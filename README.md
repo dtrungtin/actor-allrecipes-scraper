@@ -78,4 +78,4 @@ This example will add a new field `story line`, change the `name` field and remo
 ```
 
 ### Epilogue
-Thank you for trying my actor. I will be very glad for a feedback that you can send to my email `dtrungtin@gmail.com`. If you find any bug, please create an issue on the [Github page](https://github.com/dtrungtin/allrecipes-scraper).
+Thank you for trying my actor. I will be very glad for a feedback that you can send to my email `dtrungtin@gmail.com`. If you find any bug, please create an issue on the [Github page](https://github.com/dtrungtin/actor-allrecipes-scraper).

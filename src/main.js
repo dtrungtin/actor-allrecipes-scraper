@@ -108,7 +108,7 @@ Apify.main(async () => {
         handlePageTimeoutSecs: 240,
         maxConcurrency: 5,
 
-        handlePageFunction: async ({ request, autoscaledPool, $ }) => {
+        handlePageFunction: async ({ request, $ }) => {
             await delay(1000);
 
             if (request.userData.label === 'list') {
@@ -125,6 +125,7 @@ Apify.main(async () => {
                     const itemUrl = $(itemLinks[index]).attr('href');
                     if (itemUrl) {
                         await requestQueue.addRequest({ url: `${itemUrl}`, userData: { label: 'item' } });
+                        detailsEnqueued++;
                     }
                 }
 

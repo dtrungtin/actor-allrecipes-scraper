@@ -3,6 +3,12 @@
     "type": "object",
     "schemaVersion": 1,
     "properties": {
+        "searchText": {
+            "title": "Search text",
+            "type": "string",
+            "description": "Search recipes by text",
+            "editor": "textfield"
+        },
         "startUrls": {
             "title": "Start URLs",
             "type": "array",

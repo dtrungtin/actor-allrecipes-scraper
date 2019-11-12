@@ -1,6 +1,7 @@
 const Apify = require('apify');
 const _ = require('underscore');
 const safeEval = require('safe-eval');
+const querystring = require("querystring");
 
 function delay(time) {
     return new Promise(((resolve) => {
@@ -57,8 +58,21 @@ Apify.main(async () => {
     console.log('Input:');
     console.log(input);
 
-    if (!input || !Array.isArray(input.startUrls) || input.startUrls.length === 0) {
+    if (!input || ((!Array.isArray(input.startUrls) || input.startUrls.length === 0) && (!input.searchText || input.searchText.trim() === ''))) {
         throw new Error("Invalid input, it needs to contain at least one url in 'startUrls'.");
+    }
+
+    const startUrls = [];
+
+    if (input.searchText && input.searchText.trim() !== '') {
+        const searchUrl = 'https://www.allrecipes.com/search/results/?wt=' + querystring.escape(input.searchText);
+        startUrls.push(searchUrl);
+    }
+
+    if (Array.isArray(input.startUrls)) {
+        for (const request of input.startUrls) {
+            startUrls.push(request.url);
+        }
     }
 
     let extendOutputFunction;
@@ -84,9 +98,7 @@ Apify.main(async () => {
         return input.maxItems && detailsEnqueued >= input.maxItems;
     }
 
-    for (const request of input.startUrls) {
-        const startUrl = request.url;
-
+    for (const startUrl of startUrls) {
         if (checkLimit()) {
             break;
         }

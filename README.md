@@ -11,9 +11,10 @@ Allrecipes Scraper is an [Apify actor](https://apify.com/actors) for extracting 
 
 | Field | Type | Description | Default value
 | ----- | ---- | ----------- | -------------|
+| searchText | string | Search recipes by text | empty |
 | startUrls | array | List of [Request](https://sdk.apify.com/docs/api/request#docsNav) objects that will be deeply crawled. The URL can be top level like `https://www.allrecipes.com/recipes`, any category/search URL or detail URL | `[{ "url": "https://www.allrecipes.com/recipe/50644" }]`|
 | maxItems | number | Maximum number of actor pages that will be scraped | all found |
-| extendOutputFunction | string | Function that takes a JQuery handle ($) as argument and returns data that will be merged with the result output. More information in [Extend output function](#extend-output-function) | |
+| extendOutputFunction | string | Function that takes a Cheerio handle ($) as argument and returns data that will be merged with the result output. More information in [Extend output function](#extend-output-function) | |
 | proxyConfiguration | object | Proxy settings of the run. If you have access to Apify proxy, leave the default settings. If not, you can set `{ "useApifyProxy": false" }` to disable proxy usage | `{ "useApifyProxy": true }`|
 
 ### Output

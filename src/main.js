@@ -59,7 +59,7 @@ Apify.main(async () => {
     console.log(input);
 
     if (!input || ((!Array.isArray(input.startUrls) || input.startUrls.length === 0) && (!input.searchText || input.searchText.trim() === ''))) {
-        throw new Error("Invalid input, it needs to contain at least one url in 'startUrls'.");
+        throw new Error("Invalid input, it needs to contain at least one url in 'startUrls' or 'searchText'.");
     }
 
     const startUrls = [];

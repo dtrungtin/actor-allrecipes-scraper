@@ -39,6 +39,5 @@
             "description": "The best option is usually Automatic proxy. But you can also use your own proxies or no proxy",
             "prefill": { "useApifyProxy": true }
         }
-    },
-    "required": ["startUrls"]
+    }
 }

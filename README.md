@@ -1,6 +1,6 @@
 ### Allrecipes Scraper
 
-Allrecipes Scraper is an [Apify actor](https://apify.com/actors) for extracting data about actors from [Allrecipes](https://www.allrecipes.com/recipes). It allows you to extract all recipes their information. It is build on top of [Apify SDK](https://sdk.apify.com/) and you can run it both on [Apify platform](https://my.apify.com) and locally.
+Allrecipes Scraper is an [Apify actor](https://apify.com/actors) for extracting data about actors from [Allrecipes](https://www.allrecipes.com/recipes). It allows you to extract all recipes for the given search text and/or the given list of start urls. It is build on top of [Apify SDK](https://sdk.apify.com/) and you can run it both on [Apify platform](https://my.apify.com) and locally.
 
 - [Input](#input)
 - [Output](#output)
@@ -62,7 +62,7 @@ You can return fields to achive 3 different things:
     }
 }
 ```
-This example will add a new field `story line`, change the `name` field and remove `url` field
+This example will add a new field `author`, change the `name` field and remove `url` field
 ```
 {
   "author": "Chrissy Gaynor",

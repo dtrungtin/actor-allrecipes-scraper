@@ -1,7 +1,7 @@
 const Apify = require('apify');
 const _ = require('underscore');
 const safeEval = require('safe-eval');
-const querystring = require("querystring");
+const querystring = require('querystring');
 
 function delay(time) {
     return new Promise(((resolve) => {
@@ -9,17 +9,19 @@ function delay(time) {
     }));
 }
 
-const isObject = (val) => typeof val === 'object' && val !== null && !Array.isArray(val);
+const isObject = val => typeof val === 'object' && val !== null && !Array.isArray(val);
 
 function extractData(request, $) {
-    const ingredients = $('[itemprop=recipeIngredient]');
+    const ingredients = $('[itemprop=recipeIngredient]').length > 0 ? $('[itemprop=recipeIngredient]')
+        : $('.ingredients-section .ingredients-item');
     const ingredientList = [];
 
     for (let index = 0; index < ingredients.length; index++) {
         ingredientList.push($(ingredients[index]).text());
     }
 
-    const directions = $('.recipe-directions__list--item');
+    const directions = $('.recipe-directions__list--item').length > 0 ? $('.recipe-directions__list--item')
+        : $('.instructions-section .section-body');
     const directionList = [];
 
     for (let index = 0; index < directions.length; index++) {
@@ -34,15 +36,21 @@ function extractData(request, $) {
 
     return {
         url: request.url,
-        name: $('#recipe-main-content').text(),
-        rating: $('meta[itemprop=ratingValue]').attr('content'),
-        ratingcount: $('meta[itemprop=reviewCount]').attr('content'),
+        name: $('#recipe-main-content').length > 0 ? $('#recipe-main-content').text() : $('.recipe-main-header .heading-content').text(),
+        rating: $('meta[itemprop=ratingValue]').length > 0 ? $('meta[itemprop=ratingValue]').attr('content')
+            : $('meta[name="og:rating"]').attr('content'),
+        ratingcount: $('.made-it-count').length > 0 ? $('.made-it-count').next().text().split('made it')[0].trim()
+            : $('.ugc-ratings-item').text().split(' ')[0],
         ingredients: ingredientList.join(', '),
         directions: directionList.join(' '),
-        prep: $('[itemprop=prepTime]').text(),
-        cook: $('[itemprop=cookTime]').text(),
-        'ready in': $('[itemprop=totalTime]').text(),
-        calories: $('[itemprop=calories]').text().split(' ')[0],
+        prep: $('[itemprop=prepTime]').length > 0 ? $('[itemprop=prepTime]').text()
+            : $('.recipe-meta-item .recipe-meta-item-header:contains("prep:")').next().text().split(' ')[0],
+        cook: $('[itemprop=cookTime]').length > 0 ? $('[itemprop=cookTime]').text()
+            : $('.recipe-meta-item .recipe-meta-item-header:contains("cook:")').next().text().split(' ')[0],
+        'ready in': $('[itemprop=totalTime]').length > 0 ? $('[itemprop=totalTime]').text()
+            : $('.recipe-meta-item .recipe-meta-item-header:contains("total:")').next().text().split(' ')[0],
+        calories: $('[itemprop=calories]').length > 0 ? $('[itemprop=calories]').text().split(' ')[0]
+            : $('.recipe-nutrition-section .section-body').text().split(' ')[0],
         '#debug': Apify.utils.createRequestDebugInfo(request),
     };
 }
@@ -65,7 +73,7 @@ Apify.main(async () => {
     const startUrls = [];
 
     if (input.searchText && input.searchText.trim() !== '') {
-        const searchUrl = 'https://www.allrecipes.com/search/results/?wt=' + querystring.escape(input.searchText);
+        const searchUrl = `https://www.allrecipes.com/search/results/?wt=${querystring.escape(input.searchText)}`;
         startUrls.push(searchUrl);
     }
 

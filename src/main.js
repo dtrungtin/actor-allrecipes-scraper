@@ -114,6 +114,7 @@ Apify.main(async () => {
         if (startUrl.includes('https://www.allrecipes.com/')) {
             if (startUrl.includes('/recipe/')) {
                 await requestQueue.addRequest({ url: startUrl, userData: { label: 'item' } });
+                detailsEnqueued++;
             } else {
                 await requestQueue.addRequest({ url: startUrl, userData: { label: 'list' } });
             }

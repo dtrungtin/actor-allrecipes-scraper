@@ -72,7 +72,8 @@ Apify.main(async () => {
 
     const startUrls = [];
 
-    if (input.searchText && input.searchText.trim() !== '') {
+    //here the actor creates and pushes new urls based on search term - plus I added that it only does so, if there is no StartUrl in input
+    if (input.searchText && input.searchText.trim() !== '' && input.startUrls.length === 0) {
         const searchUrl = `https://www.allrecipes.com/search/results/?wt=${querystring.escape(input.searchText)}`;
         startUrls.push(searchUrl);
     }
@@ -132,7 +133,7 @@ Apify.main(async () => {
             await delay(1000);
 
             if (request.userData.label === 'list') {
-                const itemLinks = $('.fixed-recipe-card > .fixed-recipe-card__info > a');
+                const itemLinks = $('div.recipeCard__detailsContainer > a');
                 if (itemLinks.length === 0) {
                     return;
                 }

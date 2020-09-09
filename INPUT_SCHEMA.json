@@ -14,7 +14,7 @@
             "type": "array",
             "editor": "requestListSources",
             "description": "List of URLs that will be scraped or crawled.",
-            "example": [
+            "prefill": [
                 { "url": "https://www.allrecipes.com/recipes/276/desserts/cakes/" }
             ]
         },

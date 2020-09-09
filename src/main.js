@@ -3,6 +3,8 @@ const _ = require('underscore');
 const safeEval = require('safe-eval');
 const querystring = require('querystring');
 
+const { log } = Apify.utils;
+
 function delay(time) {
     return new Promise(((resolve) => {
         setTimeout(resolve, time);
@@ -133,9 +135,15 @@ Apify.main(async () => {
             await delay(1000);
 
             if (request.userData.label === 'list') {
-                const itemLinks = $('div.recipeCard__detailsContainer > a');
+                // check for category listing
+                let itemLinks = $('div.recipeCard__detailsContainer > a');
                 if (itemLinks.length === 0) {
-                    return;
+                    // check for search listing
+                    itemLinks = $('.recipe-section > article a[href^="https://www.allrecipes.com/recipe"]');
+                    
+                    if (itemLinks.length === 0) {
+                        throw new Error(`Couldn't find any available selectors in listing`);
+                    }
                 }
 
                 for (let index = 0; index < itemLinks.length; index++) {

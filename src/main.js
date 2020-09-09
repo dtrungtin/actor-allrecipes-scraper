@@ -73,7 +73,7 @@ Apify.main(async () => {
     const startUrls = [];
 
     //here the actor creates and pushes new urls based on search term - plus I added that it only does so, if there is no StartUrl in input
-    if (input.searchText && input.searchText.trim() !== '' && input.startUrls.length === 0) {
+    if (input.searchText && input.searchText.trim() !== '' && (!Array.isArray(input.startUrls) || input.startUrls.length === 0)) {
         const searchUrl = `https://www.allrecipes.com/search/results/?wt=${querystring.escape(input.searchText)}`;
         startUrls.push(searchUrl);
     }

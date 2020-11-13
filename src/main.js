@@ -1,17 +1,8 @@
 const Apify = require('apify');
-const _ = require('underscore');
-const safeEval = require('safe-eval');
-const querystring = require('querystring');
 
-const { log } = Apify.utils;
+const { log, sleep } = Apify.utils;
 
-function delay(time) {
-    return new Promise(((resolve) => {
-        setTimeout(resolve, time);
-    }));
-}
-
-const isObject = val => typeof val === 'object' && val !== null && !Array.isArray(val);
+const isObject = (val) => typeof val === 'object' && val !== null && !Array.isArray(val);
 
 function extractData(request, $) {
     const ingredients = $('[itemprop=recipeIngredient]').length > 0 ? $('[itemprop=recipeIngredient]')
@@ -41,8 +32,21 @@ function extractData(request, $) {
         name: $('#recipe-main-content').length > 0 ? $('#recipe-main-content').text() : $('.recipe-main-header .heading-content').text(),
         rating: $('meta[itemprop=ratingValue]').length > 0 ? $('meta[itemprop=ratingValue]').attr('content')
             : $('meta[name="og:rating"]').attr('content'),
-        ratingcount: $('.made-it-count').length > 0 ? $('.made-it-count').next().text().split('made it')[0].trim()
-            : $('.ugc-ratings-item').text().trim().split(' ')[0],
+        ratingcount: $('.made-it-count').length > 0
+            ? (() => {
+                try {
+                    return $('.made-it-count').next().text().split('made it')[0].trim();
+                } catch (e) {
+                    return '';
+                }
+            })()
+            : (() => {
+                try {
+                    return $('.ugc-ratings-item').text().trim().split(' ')[0];
+                } catch (e) {
+                    return '';
+                }
+            }),
         ingredients: ingredientList.join(', '),
         directions: directionList.join(' '),
         prep: $('[itemprop=prepTime]').length > 0 ? $('[itemprop=prepTime]').text()
@@ -51,17 +55,24 @@ function extractData(request, $) {
             : $('.recipe-meta-item .recipe-meta-item-header:contains("cook:")').next().text().trim(),
         'ready in': $('[itemprop=totalTime]').length > 0 ? $('[itemprop=totalTime]').text()
             : $('.recipe-meta-item .recipe-meta-item-header:contains("total:")').next().text().trim(),
-        calories: $('[itemprop=calories]').length > 0 ? $('[itemprop=calories]').text().split(' ')[0]
-            : $('.recipe-nutrition-section .section-body').text().trim().match(/(\d+) calories/)[1],
+        calories: $('[itemprop=calories]').length > 0
+            ? (() => {
+                try {
+                    return $('[itemprop=calories]').text().split(' ')[0];
+                } catch (e) {
+                    return '';
+                }
+            })()
+            : (() => {
+                try {
+                    return $('.recipe-nutrition-section .section-body').text().trim().match(/(\d+) calories/)[1];
+                } catch (e) {
+                    return '';
+                }
+            })(),
         '#debug': Apify.utils.createRequestDebugInfo(request),
     };
 }
-
-let detailsEnqueued = 0;
-
-Apify.events.on('migrating', async () => {
-    await Apify.setValue('detailsEnqueued', detailsEnqueued);
-});
 
 Apify.main(async () => {
     const input = await Apify.getInput();
@@ -73,23 +84,48 @@ Apify.main(async () => {
     }
 
     const startUrls = [];
+    let searchCount = 1;
 
-    //here the actor creates and pushes new urls based on search term - plus I added that it only does so, if there is no StartUrl in input
+    // here the actor creates and pushes new urls based on search term - plus I added that it only does so, if there is no StartUrl in input
     if (input.searchText && input.searchText.trim() !== '' && (!Array.isArray(input.startUrls) || input.startUrls.length === 0)) {
-        const searchUrl = `https://www.allrecipes.com/search/results/?wt=${querystring.escape(input.searchText)}`;
-        startUrls.push(searchUrl);
+        const searchTerms = new Set(
+            input.searchText.split(',')
+                .map((s) => s.trim())
+                .filter((s) => s),
+        );
+
+        searchCount = searchTerms.size;
+
+        for (const searchTerm of searchTerms) {
+            const searchUrl = `https://www.allrecipes.com/search/results/?wt=${encodeURIComponent(searchTerm)}`;
+
+            startUrls.push({
+                url: searchUrl,
+                userData: {
+                    searchTerm,
+                },
+            });
+        }
     }
 
-    if (Array.isArray(input.startUrls)) {
-        for (const request of input.startUrls) {
-            startUrls.push(request.url);
+    if (Array.isArray(input.startUrls) && input.startUrls.length) {
+        // support uploading using files
+        const rl = await Apify.openRequestList('INITIAL-URLS', input.startUrls);
+        let req;
+
+        while (req = await rl.fetchNextRequest()) { // eslint-disable-line no-cond-assign
+            if (req.url) {
+                startUrls.push({
+                    url: req.url,
+                });
+            }
         }
     }
 
     let extendOutputFunction;
     if (typeof input.extendOutputFunction === 'string' && input.extendOutputFunction.trim() !== '') {
         try {
-            extendOutputFunction = safeEval(input.extendOutputFunction);
+            extendOutputFunction = eval(input.extendOutputFunction); // eslint-disable-line no-eval
         } catch (e) {
             throw new Error(`'extendOutputFunction' is not valid Javascript! Error: ${e}`);
         }
@@ -100,81 +136,135 @@ Apify.main(async () => {
 
     const requestQueue = await Apify.openRequestQueue();
 
-    detailsEnqueued = await Apify.getValue('detailsEnqueued');
-    if (!detailsEnqueued) {
-        detailsEnqueued = 0;
+    let detailsParsedCount = (await Apify.getValue('DETAILS-PARSED')) || {
+        DEFAULT: 0,
+    };
+
+    const persistState = async () => {
+        await Apify.setValue('DETAILS-PARSED', detailsParsedCount);
+    };
+
+    Apify.events.on('persistState', persistState);
+
+    // this needs to work cross pagination for each term
+    function checkLimit(searchTerm = 'DEFAULT', extraCount = 0) {
+        return input.maxItems && (detailsParsedCount[searchTerm] + extraCount) >= input.maxItems;
     }
 
-    function checkLimit() {
-        return input.maxItems && detailsEnqueued >= input.maxItems;
-    }
+    let existingRecipes = 0;
 
-    for (const startUrl of startUrls) {
-        if (checkLimit()) {
-            break;
-        }
+    const requestList = await Apify.openRequestList(
+        'START-URLS',
+        startUrls.map(({ url, userData }) => {
+            if (/(www\.)?allrecipes\.com\//i.test(url)) { // with or without www.
+                if (url.includes('/recipe/')) {
+                    existingRecipes++;
 
-        if (startUrl.includes('https://www.allrecipes.com/')) {
-            if (startUrl.includes('/recipe/')) {
-                await requestQueue.addRequest({ url: startUrl, userData: { label: 'item' } });
-                detailsEnqueued++;
-            } else {
-                await requestQueue.addRequest({ url: startUrl, userData: { label: 'list' } });
+                    return {
+                        url,
+                        userData: {
+                            ...userData,
+                            label: 'item',
+                        },
+                    };
+                }
+
+                return {
+                    url,
+                    userData: {
+                        ...userData,
+                        label: 'list',
+                    },
+                };
             }
-        }
-    }
+
+            log.warning(`----\nInvalid url: ${url}\n-----\n`);
+        }).filter((s) => s),
+    );
+
+    log.info(`Starting with ${requestList.length()} urls ${existingRecipes ? `and ${existingRecipes} existing recipe(s)` : ''}`);
+
+    const proxyConfiguration = await Apify.createProxyConfiguration({ ...input.proxyConfiguration });
 
     const crawler = new Apify.CheerioCrawler({
+        requestList,
         requestQueue,
+        proxyConfiguration,
 
         handleRequestTimeoutSecs: 120,
         requestTimeoutSecs: 120,
         handlePageTimeoutSecs: 240,
 
         handlePageFunction: async ({ request, $ }) => {
-            await delay(1000);
+            await sleep(1000);
 
-            if (request.userData.label === 'list') {
-                // check for category listing
-                let itemLinks = $('div.recipeCard__detailsContainer > a');
-                if (itemLinks.length === 0) {
-                    // check for search listing
-                    itemLinks = $('.recipe-section > article a[href^="https://www.allrecipes.com/recipe"]');
-                    
-                    if (itemLinks.length === 0) {
-                        throw new Error(`Couldn't find any available selectors in listing`);
+            const { userData } = request;
+
+            if (userData.label === 'list') {
+                const itemLinks = $('a[href^="https://www.allrecipes.com/recipe/"]')
+                    .map((_, link) => $(link).attr('href'))
+                    .get()
+                    .filter((s) => s);
+
+                let enqueued = 0;
+
+                for (const link of itemLinks) {
+                    if (checkLimit(userData.searchTerm, enqueued)) {
+                        break;
+                    }
+
+                    const rq = await requestQueue.addRequest({
+                        url: `${link}`,
+                        userData: {
+                            ...userData,
+                            label: 'item',
+                        },
+                    });
+
+                    if (!rq.wasAlreadyPresent) {
+                        enqueued++;
                     }
                 }
 
-                for (let index = 0; index < itemLinks.length; index++) {
-                    if (checkLimit()) {
-                        return;
-                    }
-
-                    const itemUrl = $(itemLinks[index]).attr('href');
-                    if (itemUrl) {
-                        await requestQueue.addRequest({ url: `${itemUrl}`, userData: { label: 'item' } });
-                        detailsEnqueued++;
-                    }
+                if (enqueued) {
+                    log.info(`Enqueued ${enqueued} new recipes ${userData.searchTerm ? `for search "${userData.searchTerm}"` : ''}`, {
+                        url: request.url,
+                    });
                 }
 
-                const nextPageUrl = $('link[rel=next]').attr('href');
-                await requestQueue.addRequest({ url: `${nextPageUrl}`, userData: { label: 'list' } });
-            } else if (request.userData.label === 'item') {
+                // don't enqueue pagination if we've reached the limit
+                if (checkLimit(userData.searchTerm, enqueued)) {
+                    return;
+                }
+
+                const nextPageUrl = $('link[rel=next]').first().attr('href')
+                 || $('a[href*="?page="]').first().attr('href');
+
+                if (nextPageUrl) {
+                    await requestQueue.addRequest({
+                        url: `${nextPageUrl}`,
+                        userData: {
+                            ...userData,
+                            label: 'list',
+                        },
+                    });
+                }
+            } else if (userData.label === 'item') {
                 const pageResult = extractData(request, $);
+                let userResult = {};
 
                 if (extendOutputFunction) {
-                    const userResult = await extendOutputFunction($);
+                    userResult = extendOutputFunction($, pageResult);
 
                     if (!isObject(userResult)) {
-                        console.log('extendOutputFunction has to return an object!!!');
+                        log.error('extendOutputFunction has to return an object!');
                         process.exit(1);
                     }
-
-                    _.extend(pageResult, userResult);
                 }
 
-                await Apify.pushData(pageResult);
+                detailsParsedCount[userData.searchTerm || 'DEFAULT'] = (detailsParsedCount[userData.searchTerm || 'DEFAULT'] || 0) + 1;
+
+                await Apify.pushData({ ...pageResult, ...userResult });
             }
         },
 
@@ -184,9 +274,10 @@ Apify.main(async () => {
                 '#debug': Apify.utils.createRequestDebugInfo(request),
             });
         },
-
-        ...input.proxyConfiguration,
     });
 
     await crawler.run();
+    await persistState();
+
+    log.info('Done');
 });

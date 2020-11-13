@@ -11,7 +11,7 @@ Allrecipes Scraper is an [Apify actor](https://apify.com/actors) for extracting 
 
 | Field | Type | Description | Default value
 | ----- | ---- | ----------- | -------------|
-| searchText | string | Search recipes by text | empty |
+| searchText | string | Search recipes by text, separate more than one recipe using comma | empty |
 | startUrls | array | List of [Request](https://sdk.apify.com/docs/api/request#docsNav) objects that will be deeply crawled. The URL can be top level like `https://www.allrecipes.com/recipes`, any category/search URL or detail URL | `[{ "url": "https://www.allrecipes.com/recipe/50644" }]`|
 | maxItems | number | Maximum number of actor pages that will be scraped | all found |
 | extendOutputFunction | string | Function that takes a Cheerio handle ($) as argument and returns data that will be merged with the result output. More information in [Extend output function](#extend-output-function) | |
@@ -44,6 +44,7 @@ The average consumption is **1 Compute unit for 1000 actor pages** scraped
 ### Extend output function
 
 You can use this function to update the result output of this actor. This function gets a JQuery handle `$` as an argument so you can choose what data from the page you want to scrape. The output from this will function will get merged with the result output.
+The second parameter is the already scraped object from the recipe page.
 
 The return value of this function has to be an object!
 
@@ -53,12 +54,13 @@ You can return fields to achive 3 different things:
 - Remove a field - Return an existing field with a value `undefined`
 
 
-```
-($) => {
+```js
+($, pageResult) => {
+    // pageResult is the original item, you can use it here
     return {
         "author": $('[itemprop=author]').text(),
         "name": "NA",
-        url: undefined
+        url: undefined,
     }
 }
 ```

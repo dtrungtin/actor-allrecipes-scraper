@@ -6,7 +6,7 @@
         "searchText": {
             "title": "Search text",
             "type": "string",
-            "description": "Search recipes by text",
+            "description": "Search recipes by text, separate more than one recipe using comma",
             "editor": "textfield"
         },
         "startUrls": {
@@ -29,7 +29,7 @@
             "type": "string",
             "nullable": true,
             "description": "Function that takes a JQuery handle ($) as argument and returns data that will be merged with the default output",
-            "prefill": "($) => { return {} }",
+            "prefill": "($, pageResult) => {\n  return {}\n}",
             "editor": "javascript"
         },
         "proxyConfiguration": {

@@ -84,7 +84,6 @@ Apify.main(async () => {
     }
 
     const startUrls = [];
-    let searchCount = 1;
 
     // here the actor creates and pushes new urls based on search term - plus I added that it only does so, if there is no StartUrl in input
     if (input.searchText && input.searchText.trim() !== '' && (!Array.isArray(input.startUrls) || input.startUrls.length === 0)) {
@@ -94,10 +93,8 @@ Apify.main(async () => {
                 .filter((s) => s),
         );
 
-        searchCount = searchTerms.size;
-
         for (const searchTerm of searchTerms) {
-            const searchUrl = `https://www.allrecipes.com/search/results/?wt=${encodeURIComponent(searchTerm)}`;
+            const searchUrl = `https://www.allrecipes.com/search/results/?search=${encodeURIComponent(searchTerm)}`;
 
             startUrls.push({
                 url: searchUrl,
@@ -136,7 +133,7 @@ Apify.main(async () => {
 
     const requestQueue = await Apify.openRequestQueue();
 
-    let detailsParsedCount = (await Apify.getValue('DETAILS-PARSED')) || {
+    const detailsParsedCount = (await Apify.getValue('DETAILS-PARSED')) || {
         DEFAULT: 0,
     };
 
@@ -201,10 +198,14 @@ Apify.main(async () => {
             const { userData } = request;
 
             if (userData.label === 'list') {
-                const itemLinks = $('a[href^="https://www.allrecipes.com/recipe/"]')
+                const itemLinks = $('a.card__titleLink[href^="https://www.allrecipes.com/recipe/"]')
                     .map((_, link) => $(link).attr('href'))
                     .get()
                     .filter((s) => s);
+
+                if (itemLinks.length === 0) {
+                    return;
+                }
 
                 let enqueued = 0;
 
@@ -237,18 +238,21 @@ Apify.main(async () => {
                     return;
                 }
 
-                const nextPageUrl = $('link[rel=next]').first().attr('href')
-                 || $('a[href*="?page="]').first().attr('href');
-
-                if (nextPageUrl) {
-                    await requestQueue.addRequest({
-                        url: `${nextPageUrl}`,
-                        userData: {
-                            ...userData,
-                            label: 'list',
-                        },
-                    });
+                let nextPageUrl = `${request.url}&page=2`;
+                const parts = request.url.match(/page=(\d+)/);
+                if (parts) {
+                    const current = parseInt(parts[1], 10);
+                    const next = current + 1;
+                    nextPageUrl = request.url.replace(`&page=${current}`, `&page=${next}`);
                 }
+
+                await requestQueue.addRequest({
+                    url: `${nextPageUrl}`,
+                    userData: {
+                        ...userData,
+                        label: 'list',
+                    },
+                });
             } else if (userData.label === 'item') {
                 const pageResult = extractData(request, $);
                 let userResult = {};

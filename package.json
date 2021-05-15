@@ -3,7 +3,7 @@
 	"version": "0.1.0",
 	"description": "This is a boilerplate of an Apify actor.",
 	"dependencies": {
-		"apify": "^0.21.9",
+		"apify": "^1.2.0",
 		"querystring": "^0.2.0",
 		"request-promise": "^4.2.6"
 	},

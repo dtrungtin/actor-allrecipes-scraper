@@ -198,7 +198,7 @@ Apify.main(async () => {
             const { userData } = request;
 
             if (userData.label === 'list') {
-                const itemLinks = $('a.card__titleLink[href^="https://www.allrecipes.com/recipe/"]')
+                const itemLinks = $('a[class*="__titleLink"][href*="/recipe/"]')
                     .map((_, link) => $(link).attr('href'))
                     .get()
                     .filter((s) => s);
@@ -214,8 +214,10 @@ Apify.main(async () => {
                         break;
                     }
 
+                    const url = link.startsWith('https://') ? link : `https://www.allrecipes.com${link}`;
+
                     const rq = await requestQueue.addRequest({
-                        url: `${link}`,
+                        url,
                         userData: {
                             ...userData,
                             label: 'item',
@@ -238,12 +240,12 @@ Apify.main(async () => {
                     return;
                 }
 
-                let nextPageUrl = `${request.url}&page=2`;
+                let nextPageUrl = request.url.includes('?') ? `${request.url}&page=2` : `${request.url}?page=2`;
                 const parts = request.url.match(/page=(\d+)/);
                 if (parts) {
                     const current = parseInt(parts[1], 10);
                     const next = current + 1;
-                    nextPageUrl = request.url.replace(`&page=${current}`, `&page=${next}`);
+                    nextPageUrl = request.url.replace(`page=${current}`, `page=${next}`);
                 }
 
                 await requestQueue.addRequest({

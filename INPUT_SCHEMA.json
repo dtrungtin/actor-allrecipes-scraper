@@ -13,7 +13,7 @@
             "title": "Start URLs",
             "type": "array",
             "editor": "requestListSources",
-            "description": "List of URLs that will be scraped or crawled.",
+            "description": "List of URLs that will be scraped or crawled instead of search text.",
             "prefill": [
                 { "url": "https://www.allrecipes.com/recipes/276/desserts/cakes/" }
             ]

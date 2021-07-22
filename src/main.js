@@ -195,6 +195,7 @@ Apify.main(async () => {
         handlePageTimeoutSecs: 240,
 
         handlePageFunction: async ({ request, $ }) => {
+            log.info(`Open url (${request.userData.label}): ${request.url}`);
             await sleep(1000);
 
             const { userData } = request;

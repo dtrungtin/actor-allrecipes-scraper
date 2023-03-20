@@ -1,0 +1,44 @@
+{
+    "title": "Input schema for Actor Allrecipes Scraper",
+    "type": "object",
+    "schemaVersion": 1,
+    "properties": {
+        "searchText": {
+            "title": "Search text",
+            "type": "string",
+            "description": "Search recipes by text, separate more than one recipe using comma",
+            "editor": "textfield"
+        },
+        "startUrls": {
+            "title": "Start URLs",
+            "type": "array",
+            "editor": "requestListSources",
+            "description": "List of URLs that will be scraped or crawled instead of search text.",
+            "prefill": [
+                { "url": "https://www.allrecipes.com/recipes/276/desserts/cakes/" }
+            ]
+        },
+        "maxItems": {
+            "title": "Max items",
+            "type": "integer",
+            "minimum": 1,
+            "description": "Limit of detail/product pages to be scraped",
+            "prefill": 50
+        },
+        "extendOutputFunction": {
+            "title": "Extend output function",
+            "type": "string",
+            "nullable": true,
+            "description": "Function that takes a JQuery handle ($) as argument and returns data that will be merged with the default output",
+            "prefill": "($, pageResult) => {\n  return {}\n}",
+            "editor": "javascript"
+        },
+        "proxyConfiguration": {
+            "title": "Proxy configuration",
+            "type": "object",
+            "editor": "proxy",
+            "description": "The best option is usually Automatic proxy. But you can also use your own proxies or no proxy",
+            "prefill": { "useApifyProxy": true }
+        }
+    }
+}

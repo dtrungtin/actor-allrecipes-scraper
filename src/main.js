@@ -96,7 +96,7 @@ Apify.main(async () => {
         );
 
         for (const searchTerm of searchTerms) {
-            const searchUrl = `https://www.allrecipes.com/search/results/?search=${encodeURIComponent(searchTerm)}`;
+            const searchUrl = `https://www.allrecipes.com/search?q=${encodeURIComponent(searchTerm)}`;
 
             startUrls.push({
                 url: searchUrl,
@@ -201,7 +201,7 @@ Apify.main(async () => {
             const { userData } = request;
 
             if (userData.label === 'list') {
-                const itemLinks = $('a[class*="__titleLink"][href*="/recipe/"]')
+                const itemLinks = $('a.mntl-card-list-items[href*="/recipe/"]')
                     .map((_, link) => $(link).attr('href'))
                     .get()
                     .filter((s) => s);
@@ -243,21 +243,16 @@ Apify.main(async () => {
                     return;
                 }
 
-                let nextPageUrl = request.url.includes('?') ? `${request.url}&page=2` : `${request.url}?page=2`;
-                const parts = request.url.match(/page=(\d+)/);
-                if (parts) {
-                    const current = parseInt(parts[1], 10);
-                    const next = current + 1;
-                    nextPageUrl = request.url.replace(`page=${current}`, `page=${next}`);
+                const nextPageUrl = $('.pagination__next a').eq(0).attr('href');
+                if (nextPageUrl) {
+                    await requestQueue.addRequest({
+                        url: `${nextPageUrl}`,
+                        userData: {
+                            ...userData,
+                            label: 'list',
+                        },
+                    });
                 }
-
-                await requestQueue.addRequest({
-                    url: `${nextPageUrl}`,
-                    userData: {
-                        ...userData,
-                        label: 'list',
-                    },
-                });
             } else if (userData.label === 'item') {
                 const pageResult = extractData(request, $);
                 let userResult = {};

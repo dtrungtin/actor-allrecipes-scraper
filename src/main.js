@@ -5,18 +5,14 @@ const { log, sleep } = Apify.utils;
 const isObject = (val) => typeof val === 'object' && val !== null && !Array.isArray(val);
 
 function extractData(request, $) {
-    const ingredients = $('[itemprop=recipeIngredient]').length > 0 ? $('[itemprop=recipeIngredient]')
-        : $('.ingredients-section .ingredients-item-name');
+    const ingredients = $('.mntl-structured-ingredients__list-item');
     const ingredientList = [];
-
     for (let index = 0; index < ingredients.length; index++) {
         ingredientList.push($(ingredients[index]).text().trim());
     }
 
-    const directions = $('.recipe-directions__list--item').length > 0 ? $('.recipe-directions__list--item')
-        : $('.instructions-section .section-body');
+    const directions = $('h2[id*=recipe__steps-heading]:contains("Directions")').next().find('li p.mntl-sc-block');
     const directionList = [];
-
     for (let index = 0; index < directions.length; index++) {
         const text = $(directions[index]).text().trim()
             .split('\n')
@@ -29,47 +25,15 @@ function extractData(request, $) {
 
     return {
         url: request.url,
-        name: $('#recipe-main-content').length > 0 ? $('#recipe-main-content').text() : $('.recipe-main-header .heading-content').text(),
-        rating: $('meta[itemprop=ratingValue]').length > 0 ? $('meta[itemprop=ratingValue]').attr('content')
-            : $('meta[name="og:rating"]').attr('content'),
-        ratingcount: $('.made-it-count').length > 0
-            ? (() => {
-                try {
-                    return $('.made-it-count').next().text().split('made it')[0].trim();
-                } catch (e) {
-                    return '';
-                }
-            })()
-            : (() => {
-                try {
-                    return $('.ugc-ratings-item').text().trim().split(' ')[0];
-                } catch (e) {
-                    return '';
-                }
-            }),
-        ingredients: ingredientList.join(', '),
+        name: $('meta[itemprop=name]').attr('content'),
+        rating: $('.mntl-recipe-review-bar__rating').text().trim(),
+        ratingcount: $('.mntl-recipe-review-bar__rating-count').text().match(/\d+/)[0],
+        ingredients: ingredientList.join('; '),
         directions: directionList.join(' '),
-        prep: $('[itemprop=prepTime]').length > 0 ? $('[itemprop=prepTime]').text()
-            : $('.recipe-meta-item .recipe-meta-item-header:contains("prep:")').next().text().trim(),
-        cook: $('[itemprop=cookTime]').length > 0 ? $('[itemprop=cookTime]').text()
-            : $('.recipe-meta-item .recipe-meta-item-header:contains("cook:")').next().text().trim(),
-        'ready in': $('[itemprop=totalTime]').length > 0 ? $('[itemprop=totalTime]').text()
-            : $('.recipe-meta-item .recipe-meta-item-header:contains("total:")').next().text().trim(),
-        calories: $('[itemprop=calories]').length > 0
-            ? (() => {
-                try {
-                    return $('[itemprop=calories]').text().split(' ')[0];
-                } catch (e) {
-                    return '';
-                }
-            })()
-            : (() => {
-                try {
-                    return $('.recipe-nutrition-section .section-body').text().trim().match(/(\d+) calories/)[1];
-                } catch (e) {
-                    return '';
-                }
-            })(),
+        prep: $('.mntl-recipe-details__label:contains("Prep Time:")').next().text().trim(),
+        cook: $('.mntl-recipe-details__label:contains("Cook Time:")').next().text().trim(),
+        total: $('.mntl-recipe-details__label:contains("Total Time:")').next().text().trim(),
+        calories: $('.mntl-nutrition-facts-summary__table-cell:contains("Calories")').prev().text().trim(),
         '#debug': Apify.utils.createRequestDebugInfo(request),
     };
 }

@@ -18,6 +18,10 @@ await Actor.init();
 // const storage = new ApifyStorageLocal();
 // await Actor.init({ storage });
 
+Actor.on('migrating', () => {
+    Actor.setValue('detailsEnqueued', global.detailsEnqueued);
+});
+
 global.detailsEnqueued = await Actor.getValue('detailsEnqueued') || 0;
 
 const input = await Actor.getInput();

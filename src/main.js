@@ -56,7 +56,7 @@ if (input.searchText && input.searchText.trim() !== '' && (!Array.isArray(input.
 
 if (Array.isArray(input.startUrls) && input.startUrls.length) {
     if (input.startUrls[0].requestsFromUrl) {
-        const listOfUrls = await downloadListOfUrls({ url: startUrls[0].requestsFromUrl });
+        const listOfUrls = await downloadListOfUrls({ url: input.startUrls[0].requestsFromUrl });
         for (let index = 0; index < listOfUrls.length; index++) {
             startUrls.push({
                 url: listOfUrls[index],

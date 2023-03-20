@@ -12,11 +12,11 @@ import { router } from './routes.js';
 import { downloadListOfUrls } from '@crawlee/utils';
 
 // Initialize the Apify SDK
-// await Actor.init();
+await Actor.init();
 
-import { ApifyStorageLocal } from '@apify/storage-local';
-const storage = new ApifyStorageLocal();
-await Actor.init({ storage });
+// import { ApifyStorageLocal } from '@apify/storage-local';
+// const storage = new ApifyStorageLocal();
+// await Actor.init({ storage });
 
 global.detailsEnqueued = await Actor.getValue('detailsEnqueued') || 0;
 

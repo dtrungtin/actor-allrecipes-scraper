@@ -10,13 +10,13 @@ function checkLimit() {
 }
 
 function extractData(request, $) {
-    const ingredients = $('.mntl-structured-ingredients__list-item');
+    const ingredients = $('.mm-recipes-structured-ingredients__list-item');
     const ingredientList = [];
     for (let index = 0; index < ingredients.length; index++) {
         ingredientList.push($(ingredients[index]).text().trim());
     }
 
-    const directions = $('h2[id*=recipe__steps-heading]:contains("Directions")').next().find('li p.mntl-sc-block');
+    const directions = $('h2[id*=recipes-steps__heading]:contains("Directions")').next().find('li p.mntl-sc-block');
     const directionList = [];
     for (let index = 0; index < directions.length; index++) {
         const text = $(directions[index]).text().trim()
@@ -31,14 +31,14 @@ function extractData(request, $) {
     return {
         url: request.url,
         name: $('meta[itemprop=name]').attr('content'),
-        rating: $('.mntl-recipe-review-bar__rating').text().trim(),
-        ratingcount: $('.mntl-recipe-review-bar__rating-count').text().match(/\d+/)[0],
+        rating: $('.mm-recipes-review-bar__rating').text().trim(),
+        ratingcount: $('.mm-recipes-review-bar__rating-count').text().match(/\d+/)[0],
         ingredients: ingredientList.join('; '),
         directions: directionList.join(' '),
-        prep: $('.mntl-recipe-details__label:contains("Prep Time:")').next().text().trim(),
-        cook: $('.mntl-recipe-details__label:contains("Cook Time:")').next().text().trim(),
-        total: $('.mntl-recipe-details__label:contains("Total Time:")').next().text().trim(),
-        calories: $('.mntl-nutrition-facts-summary__table-cell:contains("Calories")').prev().text().trim(),
+        prep: $('.mm-recipes-details__label:contains("Prep Time:")').next().text().trim(),
+        cook: $('.mn-recipes-details__label:contains("Cook Time:")').next().text().trim(),
+        total: $('.mn-recipes-details__label:contains("Total Time:")').next().text().trim(),
+        calories: $('.mm-recipes-nutrition-facts-summary__table-cell:contains("Calories")').prev().text().trim(),
     };
 }
 

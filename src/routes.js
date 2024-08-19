@@ -36,8 +36,8 @@ function extractData(request, $) {
         ingredients: ingredientList.join('; '),
         directions: directionList.join(' '),
         prep: $('.mm-recipes-details__label:contains("Prep Time:")').next().text().trim(),
-        cook: $('.mn-recipes-details__label:contains("Cook Time:")').next().text().trim(),
-        total: $('.mn-recipes-details__label:contains("Total Time:")').next().text().trim(),
+        cook: $('.mm-recipes-details__label:contains("Cook Time:")').next().text().trim(),
+        total: $('.mm-recipes-details__label:contains("Total Time:")').next().text().trim(),
         calories: $('.mm-recipes-nutrition-facts-summary__table-cell:contains("Calories")').prev().text().trim(),
     };
 }
